@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skill Demand vs. Average Salary with Gemini Analysis</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .modal-content-body {
+            white-space: pre-wrap; /* Ensures line breaks from the API are respected */
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-5xl bg-white rounded-xl shadow-lg p-6 md:p-8">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Lanskap Skill Data Analyst</h1>
+        <p class="text-gray-600 mb-6">Lihat ringkasan di bawah untuk 5 skill teratas, atau klik titik mana pun pada grafik untuk analisis mendalam dari Gemini.</p>
+
+        <!-- Top 5 Skills Summary Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <!-- Top 5 by Demand -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h3 class="text-xl font-bold text-blue-800 mb-4">Top 5 Skill Paling Dicari</h3>
+                <ol class="list-decimal list-inside space-y-3 text-gray-700">
+                    <li><span class="font-semibold">SQL</span> - disebut dalam 3,083 lowongan</li>
+                    <li><span class="font-semibold">Excel</span> - disebut dalam 2,143 lowongan</li>
+                    <li><span class="font-semibold">Python</span> - disebut dalam 1,840 lowongan</li>
+                    <li><span class="font-semibold">Tableau</span> - disebut dalam 1,659 lowongan</li>
+                    <li><span class="font-semibold">R</span> - disebut dalam 1,073 lowongan</li>
+                </ol>
+            </div>
+            <!-- Top 5 by Salary -->
+            <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+                <h3 class="text-xl font-bold text-green-800 mb-4">Top 5 Skill dengan Gaji Tertinggi</h3>
+                <ol class="list-decimal list-inside space-y-3 text-gray-700">
+                    <li><span class="font-semibold">SVN</span> - rata-rata $400,000</li>
+                    <li><span class="font-semibold">Solidity</span> - rata-rata $179,000</li>
+                    <li><span class="font-semibold">Couchbase</span> - rata-rata $160,515</li>
+                    <li><span class="font-semibold">Datarobot</span> - rata-rata $155,485</li>
+                    <li><span class="font-semibold">Golang</span> - rata-rata $155,000</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="relative h-[500px]">
+            <canvas id="demandSalaryChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Modal for Gemini Analysis -->
+    <div id="skillModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h2 class="text-2xl font-bold text-gray-800" id="modalSkillTitle"></h2>
+                <button id="closeModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto">
+                <div id="modalContent" class="text-gray-700 leading-relaxed">
+                    <!-- Gemini response will be injected here -->
+                </div>
+                 <!-- Loading Spinner -->
+                <div id="loadingSpinner" class="hidden text-center py-8">
+                    <svg class="animate-spin h-8 w-8 text-indigo-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p class="mt-2 text-gray-500">Menganalisis skill...</p>
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+                 <button id="getAnalysisBtn" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition-all shadow-md flex items-center justify-center">
+                    <span class="mr-2">✨</span> Dapatkan Analisis Karir dari Gemini
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        const data = [
+            { skills: 'sql', skills_demand: 3083, skills_avg_salary: 96435.33 },
+            { skills: 'excel', skills_demand: 2143, skills_avg_salary: 84392.65 },
+            { skills: 'python', skills_demand: 1840, skills_avg_salary: 101133.75 },
+            { skills: 'tableau', skills_demand: 1659, skills_avg_salary: 97978.08 },
+            { skills: 'r', skills_demand: 1073, skills_avg_salary: 98694.73 },
+            { skills: 'power bi', skills_demand: 1044, skills_avg_salary: 92323.6 },
+            { skills: 'sas', skills_demand: 1000, skills_avg_salary: 93707.36 },
+            { skills: 'word', skills_demand: 527, skills_avg_salary: 79274.9 },
+            { skills: 'powerpoint', skills_demand: 524, skills_avg_salary: 82562.3 },
+            { skills: 'sql server', skills_demand: 336, skills_avg_salary: 96191.42 },
+            { skills: 'oracle', skills_demand: 332, skills_avg_salary: 104723.45 },
+            { skills: 'azure', skills_demand: 319, skills_avg_salary: 109724.38 },
+            { skills: 'aws', skills_demand: 291, skills_avg_salary: 107774.59 },
+            { skills: 'go', skills_demand: 288, skills_avg_salary: 97266.97 },
+            { skills: 'flow', skills_demand: 271, skills_avg_salary: 98019.82 },
+            { skills: 'looker', skills_demand: 260, skills_avg_salary: 103799.3 },
+            { skills: 'snowflake', skills_demand: 241, skills_avg_salary: 112133.1 },
+            { skills: 'spss', skills_demand: 212, skills_avg_salary: 90280.91 },
+            { skills: 'spark', skills_demand: 187, skills_avg_salary: 113333.85 },
+            { skills: 'vba', skills_demand: 185, skills_avg_salary: 93844.97 },
+            { skills: 'sap', skills_demand: 183, skills_avg_salary: 92446.21 },
+            { skills: 'kafka', skills_demand: 40, skills_avg_salary: 129999.16 },
+            { skills: 'pytorch', skills_demand: 20, skills_avg_salary: 125226.2 },
+            { skills: 'perl', skills_demand: 20, skills_avg_salary: 124685.75 },
+            { skills: 'tensorflow', skills_demand: 24, skills_avg_salary: 120646.83 },
+            { skills: 'cassandra', skills_demand: 11, skills_avg_salary: 118406.68 }
+        ];
+
+        const ctx = document.getElementById('demandSalaryChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Skills',
+                    data: data.map(item => ({ x: item.skills_demand, y: item.skills_avg_salary, skill: item.skills })),
+                    backgroundColor: 'rgba(79, 70, 229, 0.7)',
+                    borderColor: 'rgba(79, 70, 229, 1)',
+                    pointRadius: 6,
+                    pointHoverRadius: 9
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                onClick: (event, elements) => {
+                    if (elements.length > 0) {
+                        const element = elements[0];
+                        const skillData = chart.data.datasets[element.datasetIndex].data[element.index];
+                        openSkillModal(skillData.skill, skillData.x, skillData.y);
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'logarithmic',
+                        title: {
+                            display: true,
+                            text: 'Skill Demand (Number of Job Postings)',
+                            font: { size: 14, weight: 'bold' },
+                            color: '#374151'
+                        },
+                        grid: { color: '#e5e7eb' },
+                        ticks: {
+                            color: '#4b5563',
+                            font: { weight: '500' },
+                             callback: function(value, index, values) {
+                                if (value === 10 || value === 100 || value === 1000 || value === 10000) {
+                                    return value.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Average Annual Salary (USD)',
+                            font: { size: 14, weight: 'bold' },
+                            color: '#374151'
+                        },
+                        grid: { color: '#e5e7eb' },
+                        ticks: {
+                            color: '#4b5563',
+                            font: { weight: '500' },
+                            callback: function(value) {
+                                return '$' + (value / 1000) + 'k';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1f2937',
+                        titleFont: { size: 14, weight: 'bold' },
+                        bodyFont: { size: 12 },
+                        callbacks: {
+                            title: function(context) {
+                                return context[0].raw.skill.charAt(0).toUpperCase() + context[0].raw.skill.slice(1);
+                            },
+                            label: function(context) {
+                                const demand = context.raw.x.toLocaleString();
+                                const salary = '$' + context.raw.y.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                return `Demand: ${demand}\nSalary: ${salary}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Modal Logic
+        const modal = document.getElementById('skillModal');
+        const closeModalBtn = document.getElementById('closeModal');
+        const getAnalysisBtn = document.getElementById('getAnalysisBtn');
+        const modalTitle = document.getElementById('modalSkillTitle');
+        const modalContent = document.getElementById('modalContent');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        let currentSkill = '';
+
+        function openSkillModal(skill, demand, salary) {
+            currentSkill = skill;
+            modalTitle.textContent = skill.charAt(0).toUpperCase() + skill.slice(1);
+            modalContent.innerHTML = `
+                <p class="mb-2"><span class="font-semibold">Permintaan di Pasar:</span> ${demand.toLocaleString()} lowongan</p>
+                <p><span class="font-semibold">Rata-rata Gaji Tahunan:</span> $${salary.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                <p class="mt-4 text-sm text-gray-500">Klik tombol di bawah untuk mendapatkan analisis karir mendalam tentang skill ini dari Gemini.</p>
+            `;
+            loadingSpinner.classList.add('hidden');
+            modal.classList.remove('hidden');
+        }
+
+        closeModalBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+        });
+
+        getAnalysisBtn.addEventListener('click', async () => {
+            if (!currentSkill) return;
+
+            loadingSpinner.classList.remove('hidden');
+            modalContent.innerHTML = ''; // Clear previous content
+
+            const prompt = `Sebagai seorang penasihat karir ahli untuk posisi Data Analyst, berikan analisis mendalam tentang skill '${currentSkill}'.
+
+Jelaskan dalam format yang jelas dan mudah dibaca (gunakan poin-poin):
+1.  **Apa itu ${currentSkill}?** (Jelaskan secara singkat dan sederhana).
+2.  **Mengapa Skill Ini Penting?** (Jelaskan relevansinya dalam pekerjaan seorang Data Analyst).
+3.  **Contoh Proyek:** (Berikan 1-2 contoh proyek nyata di mana skill ini sangat dibutuhkan).
+4.  **Tips untuk Mempelajari:** (Berikan saran praktis dan sumber belajar untuk pemula).
+
+Gunakan bahasa Indonesia.`;
+
+            try {
+                let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                const payload = { contents: chatHistory };
+                const apiKey = ""; // API key is handled by the environment
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    modalContent.innerHTML = `<div class="prose max-w-none modal-content-body">${text}</div>`;
+                } else {
+                    throw new Error("Invalid response structure from API.");
+                }
+
+            } catch (error) {
+                console.error("Error calling Gemini API:", error);
+                modalContent.innerHTML = `<p class="text-red-500">Maaf, terjadi kesalahan saat mengambil analisis. Silakan coba lagi nanti.</p><p class="text-xs text-gray-500 mt-2">${error.message}</p>`;
+            } finally {
+                loadingSpinner.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
