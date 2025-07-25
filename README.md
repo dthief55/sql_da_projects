@@ -20,4 +20,5 @@ So, below are the most-optimal (high demand and high salary, sorted by salary de
 
 
 Link to dataset: https://drive.google.com/drive/folders/1moeWYoUtUklJO6NJdWo9OV8zWjRn0rjN
-Click here to get interactive chart --> index.html
+
+Click here to get interactive chart --> [Interactive Chart](https://dthief55.github.io/sql_da_projects/)
